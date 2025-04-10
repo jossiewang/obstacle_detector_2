@@ -531,6 +531,7 @@ void ObstacleExtractor::publishVisualizationObstacles(){
   num_active_markers_ = id + 1;
   obstacles_vis_pub_->publish(obstacles_vis_msg);
   time_last_marker_published_ = nh_->get_clock()->now();
+  obstacles_vis_msg.markers.clear();
 }
 
 void ObstacleExtractor::transformObstacles() {
