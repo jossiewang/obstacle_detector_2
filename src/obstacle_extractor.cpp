@@ -460,32 +460,6 @@ bool ObstacleExtractor::compareCircles(const Circle& c1, const Circle& c2, Circl
 void ObstacleExtractor::publishVisualizationObstacles(){
   auto obstacles_vis_msg = visualization_msgs::msg::MarkerArray();
   int id = 0;
-  for (const Segment& s : segments_) {
-    auto seg_marker = visualization_msgs::msg::Marker();
-    seg_marker.header.stamp = stamp_;
-    seg_marker.header.frame_id = published_obstacles_frame_id_;
-    seg_marker.action = visualization_msgs::msg::Marker::ADD;
-    seg_marker.id = id++;
-    seg_marker.ns = "raw_obstacles";
-    seg_marker.scale.x = 0.1;
-    seg_marker.color.g = 1.0;
-    seg_marker.color.a = 1.0;
-    seg_marker.type = visualization_msgs::msg::Marker::LINE_STRIP;
-
-    auto seg_fp = geometry_msgs::msg::Point();
-    seg_fp.x = s.first_point.x;
-    seg_fp.y = s.first_point.y;
-    seg_fp.z = s.first_point.z;
-    auto seg_lp = geometry_msgs::msg::Point();
-    seg_lp.x = s.last_point.x;
-    seg_lp.y = s.last_point.y;
-    seg_lp.z = s.last_point.z;
-    seg_marker.points.push_back(seg_fp);
-    seg_marker.points.push_back(seg_lp);
-
-    seg_marker.pose.orientation.w = 1.0;   
-    obstacles_vis_msg.markers.push_back(seg_marker);
-  }
 
   for (const Circle& c : circles_) {
     if (c.center.x > p_min_x_limit_ && c.center.x < p_max_x_limit_ &&
