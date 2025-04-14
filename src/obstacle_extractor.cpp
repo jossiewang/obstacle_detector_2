@@ -55,7 +55,7 @@ ObstacleExtractor::ObstacleExtractor(std::shared_ptr<rclcpp::Node> nh, std::shar
 
   tf_buffer_ = std::make_unique<tf2_ros::Buffer>(nh_->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-  time_last_marker_published_ = nh_->get_clock()->now() - rclcpp::Duration(10, 0);
+  // time_last_marker_published_ = nh_->get_clock()->now() - rclcpp::Duration(10, 0);
   initialize();
 }
 
@@ -458,54 +458,26 @@ bool ObstacleExtractor::compareCircles(const Circle& c1, const Circle& c2, Circl
 }
 
 void ObstacleExtractor::publishVisualizationObstacles(){
-  auto obstacles_vis_msg = visualization_msgs::msg::MarkerArray();
-  int id = 0;
+  auto obstacles_vis_msg = sensor_msgs::msg::PointCloud();
+  obstacles_vis_msg.header.stamp = stamp_;
+  obstacles_vis_msg.header.frame_id = published_obstacles_frame_id_;
+  obstacles_vis_msg.points.clear();
+  obstacles_vis_msg.channels.clear(); // channels?
+  obstacles_vis_msg.channels.resize(1);
 
   for (const Circle& c : circles_) {
     if (c.center.x > p_min_x_limit_ && c.center.x < p_max_x_limit_ &&
         c.center.y > p_min_y_limit_ && c.center.y < p_max_y_limit_) {
-        auto circ_marker = visualization_msgs::msg::Marker();
-        circ_marker.header.stamp = stamp_;
-        circ_marker.header.frame_id = published_obstacles_frame_id_;
-        circ_marker.action = visualization_msgs::msg::Marker::ADD;
-        circ_marker.id = id++;
-        circ_marker.ns = "raw_obstacles";
-        // fake a bigger obstacle radius for visualization purposes
-        double rad = c.radius;
-        if (rad < 0.2){rad = 0.2;}
-        circ_marker.scale.x = rad;
-        circ_marker.scale.y = rad;
-        circ_marker.scale.z = 0.01;
-        circ_marker.color.g = 1.0;
-        circ_marker.color.a = 1.0;
-        circ_marker.type = visualization_msgs::msg::Marker::CYLINDER;
-        
-        circ_marker.pose.position.x = c.center.x;
-        circ_marker.pose.position.y = c.center.y;
-        circ_marker.pose.position.z = c.center.z;
-
-        circ_marker.pose.orientation.x = 0.0;
-        circ_marker.pose.orientation.y = 0.0;
-        circ_marker.pose.orientation.z = 0.0;
-        circ_marker.pose.orientation.w = 1.0;
-        obstacles_vis_msg.markers.push_back(circ_marker);
+        auto point = geometry_msgs::msg::Point32();
+        point.x = c.center.x;
+        point.y = c.center.y;
+        point.z = c.center.z;
+        obstacles_vis_msg.points.push_back(point);
     }
   }
 
-  // clean up remaining ids
-  while(id < num_active_markers_){
-    visualization_msgs::msg::Marker markerD;
-    markerD.header.stamp = stamp_;
-    markerD.header.frame_id = published_obstacles_frame_id_;
-    markerD.ns = "raw_obstacles";
-    markerD.id = id++;  
-    markerD.action = visualization_msgs::msg::Marker::DELETE;
-    obstacles_vis_msg.markers.push_back(markerD);
-  }
-  num_active_markers_ = id + 1;
   obstacles_vis_pub_->publish(obstacles_vis_msg);
-  time_last_marker_published_ = nh_->get_clock()->now();
-  obstacles_vis_msg.markers.clear();
+  // time_last_marker_published_ = nh_->get_clock()->now();
 }
 
 void ObstacleExtractor::transformObstacles() {
