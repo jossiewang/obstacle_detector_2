@@ -131,7 +131,7 @@ void ObstacleExtractor::updateParamsUtil(){
             "pcl2", 10, std::bind(&ObstacleExtractor::pcl2Callback, this, std::placeholders::_1));
       }
       obstacles_pub_ = nh_->create_publisher<obstacle_detector::msg::Obstacles>("raw_obstacles", 10);
-      obstacles_vis_pub_ = nh_->create_publisher<visualization_msgs::msg::MarkerArray>("raw_obstacles_visualization", 10);
+      obstacles_vis_pub_ = nh_->create_publisher<sensor_msgs::msg::PointCloud>("raw_obstacles_visualization", 10);
     }
     else {
       // Send empty message
@@ -462,8 +462,8 @@ void ObstacleExtractor::publishVisualizationObstacles(){
   obstacles_vis_msg.header.stamp = stamp_;
   obstacles_vis_msg.header.frame_id = published_obstacles_frame_id_;
   obstacles_vis_msg.points.clear();
-  obstacles_vis_msg.channels.clear(); // channels?
-  obstacles_vis_msg.channels.resize(1);
+  // obstacles_vis_msg.channels.clear(); // channels?
+  // obstacles_vis_msg.channels.resize(1);
 
   for (const Circle& c : circles_) {
     if (c.center.x > p_min_x_limit_ && c.center.x < p_max_x_limit_ &&
@@ -490,8 +490,8 @@ void ObstacleExtractor::transformObstacles() {
         m_transform = tf_buffer_->lookupTransform(p_frame_id_, base_frame_id_, tf2::TimePointZero);
     } 
     catch (const tf2::TransformException & ex) {
-        RCLCPP_INFO_THROTTLE(
-        nh_->get_logger(), *nh_->get_clock(), 1000ms, "Could not transformmm %s to %s: %s",
+        RCLCPP_INFO(
+        nh_->get_logger(), "Could not transformmm %s to %s: %s",
         p_frame_id_.c_str(), base_frame_id_.c_str(), ex.what());
         return;
     }
