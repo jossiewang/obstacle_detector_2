@@ -131,7 +131,7 @@ void ObstacleExtractor::updateParamsUtil(){
             "pcl2", 10, std::bind(&ObstacleExtractor::pcl2Callback, this, std::placeholders::_1));
       }
       obstacles_pub_ = nh_->create_publisher<obstacle_detector::msg::Obstacles>("raw_obstacles", 10);
-      obstacles_vis_pub_ = nh_->create_publisher<sensor_msgs::msg::PointCloud>("raw_obstacles_visualization", 10);
+      obstacles_vis_pub_ = nh_->create_publisher<sensor_msgs::msg::PointCloud2>("raw_obstacles_visualization", 10);
     }
     else {
       // Send empty message
@@ -457,27 +457,76 @@ bool ObstacleExtractor::compareCircles(const Circle& c1, const Circle& c2, Circl
   return false;
 }
 
-void ObstacleExtractor::publishVisualizationObstacles(){
-  auto obstacles_vis_msg = sensor_msgs::msg::PointCloud();
+// void ObstacleExtractor::publishVisualizationObstacles(){
+//   auto obstacles_vis_msg = sensor_msgs::msg::PointCloud();
+//   obstacles_vis_msg.header.stamp = stamp_;
+//   obstacles_vis_msg.header.frame_id = published_obstacles_frame_id_;
+//   obstacles_vis_msg.points.clear();
+//   // obstacles_vis_msg.channels.clear(); // channels?
+//   // obstacles_vis_msg.channels.resize(1);
+
+//   for (const Circle& c : circles_) {
+//     if (c.center.x > p_min_x_limit_ && c.center.x < p_max_x_limit_ &&
+//         c.center.y > p_min_y_limit_ && c.center.y < p_max_y_limit_) {
+//         auto point = geometry_msgs::msg::Point32();
+//         point.x = c.center.x;
+//         point.y = c.center.y;
+//         point.z = c.center.z;
+//         obstacles_vis_msg.points.push_back(point);
+//     }
+//   }
+
+//   obstacles_vis_pub_->publish(obstacles_vis_msg);
+//   // time_last_marker_published_ = nh_->get_clock()->now();
+// }
+
+void ObstacleExtractor::publishVisualizationObstacles() {
+  auto obstacles_vis_msg = sensor_msgs::msg::PointCloud2();
   obstacles_vis_msg.header.stamp = stamp_;
   obstacles_vis_msg.header.frame_id = published_obstacles_frame_id_;
-  obstacles_vis_msg.points.clear();
-  // obstacles_vis_msg.channels.clear(); // channels?
-  // obstacles_vis_msg.channels.resize(1);
 
-  for (const Circle& c : circles_) {
+  // Define the point cloud structure
+  obstacles_vis_msg.height = 1; // Unordered point cloud
+  obstacles_vis_msg.width = circles_.size();
+  obstacles_vis_msg.is_bigendian = false;
+  obstacles_vis_msg.is_dense = true; // Assume no invalid points
+  obstacles_vis_msg.point_step = 12; // 3 fields (x, y, z) * 4 bytes each (float32)
+  obstacles_vis_msg.row_step = obstacles_vis_msg.point_step * obstacles_vis_msg.width;
+
+  // Define the fields (x, y, z)
+  sensor_msgs::msg::PointField field_x, field_y, field_z;
+  field_x.name = "x";
+  field_x.offset = 0;
+  field_x.datatype = sensor_msgs::msg::PointField::FLOAT32;
+  field_x.count = 1;
+
+  field_y.name = "y";
+  field_y.offset = 4;
+  field_y.datatype = sensor_msgs::msg::PointField::FLOAT32;
+  field_y.count = 1;
+
+  field_z.name = "z";
+  field_z.offset = 8;
+  field_z.datatype = sensor_msgs::msg::PointField::FLOAT32;
+  field_z.count = 1;
+
+  obstacles_vis_msg.fields = {field_x, field_y, field_z};
+
+  // Populate the point data
+  std::vector<uint8_t> data(obstacles_vis_msg.row_step);
+  for (size_t i = 0; i < circles_.size(); ++i) {
+    const Circle& c = circles_[i];
     if (c.center.x > p_min_x_limit_ && c.center.x < p_max_x_limit_ &&
         c.center.y > p_min_y_limit_ && c.center.y < p_max_y_limit_) {
-        auto point = geometry_msgs::msg::Point32();
-        point.x = c.center.x;
-        point.y = c.center.y;
-        point.z = c.center.z;
-        obstacles_vis_msg.points.push_back(point);
+      float* point = reinterpret_cast<float*>(&data[i * obstacles_vis_msg.point_step]);
+      point[0] = static_cast<float>(c.center.x);
+      point[1] = static_cast<float>(c.center.y);
+      point[2] = static_cast<float>(c.center.z);
     }
   }
 
+  obstacles_vis_msg.data = std::move(data);
   obstacles_vis_pub_->publish(obstacles_vis_msg);
-  // time_last_marker_published_ = nh_->get_clock()->now();
 }
 
 void ObstacleExtractor::transformObstacles() {

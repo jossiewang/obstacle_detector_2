@@ -105,7 +105,7 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::PointCloud>::SharedPtr pcl_sub_;
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pcl2_sub_;
   rclcpp::Publisher<obstacle_detector::msg::Obstacles>::SharedPtr obstacles_pub_;
-  rclcpp::Publisher<sensor_msgs::msg::PointCloud>::SharedPtr obstacles_vis_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr obstacles_vis_pub_;
   rclcpp::Service<std_srvs::srv::Empty>::SharedPtr params_srv_;
 
   rclcpp::Time stamp_;
